@@ -42,7 +42,7 @@ steps:
     targetType: 'inline'
     script: |
       # Install OpenJDK 11
-      choco install openjdk11
+      choco install openjdk11 -y
       
       # Download Android SDK command line tools if not already downloaded
       Invoke-WebRequest -Uri "https://dl.google.com/android/repository/commandlinetools-win-7583922_latest.zip" -OutFile "android-tools.zip"
@@ -80,18 +80,26 @@ steps:
 - script: |
     npm install -g appium
     appium driver install uiautomator2
-  displayName: 'Install Appium and Android driver'
+  displayName: 'Install Appium and Android Driver'
 
 - task: PowerShell@2
   inputs:
     targetType: 'inline'
     script: |
-      Start-Process -NoNewWindow -FilePath "C:\npm\prefix\appium.cmd" -ArgumentList "--port", "4723", "--log-level", "debug" -PassThru
+      $appiumPath = "C:\npm\prefix\appium.cmd"
+      if (Test-Path $appiumPath) {
+        Write-Host "Starting Appium server..."
+        Start-Process -NoNewWindow -FilePath $appiumPath -ArgumentList "--port", "4723", "--log-level", "debug" -PassThru
+      } else {
+        Write-Host "Appium executable not found at $appiumPath. Please ensure Appium is installed correctly."
+        exit 1
+      }
   displayName: 'Start Appium Server'
 
 - script: |
-    pytest TestCases/ --junitxml=TestResults/test-results.xml
-  displayName: "Run Tests"
+    # Run tests using pytest
+    python -m unittest discover -p "test_*.py" -v
+  displayName: 'Run Appium Tests'
 
 - task: PublishTestResults@2
   inputs:
